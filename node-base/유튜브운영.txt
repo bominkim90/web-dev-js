@@ -1,0 +1,43 @@
+
+# API 설계
+** 언제든 고쳐 쓰는거임 **
+
+
+## 회원
+1) 로그인 (POST '/login')
+  - req : body (id, pwd)
+  - 체크사항
+    빈값 체크
+  - res : id 로그인 성공
+
+2) 회원 가입 (POST '/users')
+  - req : body(id, pwd, name)
+  - 체크 사항
+    id, pwd 둘다 최소 문자열1개,숫자1개 이상
+    id 중복체크
+  - res : id 회원가입 성공
+
+3) 회원 개별 조회 (GET '/users')
+  - req : body(id)
+  - res : id 마이페이지임
+
+4) 회원 개별 탈퇴 (DELETE '/users')
+  - req : body(id, pwd)
+  - res : ${name}다음에 또 뵙겠슴
+
+
+회원은 계정 1개당 채널 100개를 가질 수 있다.
+  채널
+  - 채널 생성
+  - 채널 수정
+  - 채널 삭제
+
+
+
+---
+## 회원 API 설계
+1) 로그인 
+
+
+
+2)

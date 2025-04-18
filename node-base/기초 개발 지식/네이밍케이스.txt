@@ -1,0 +1,19 @@
+네이밍 케이스
+
+폴더 ex. demo-api
+파일 ex. object-api-medo.js
+
+
+[kebab-case] 폴더, 파일
+demo-api, demo-js
+
+
+[camel-case] 변수, 함수
+channelTitle, videoNum
+
+
+[snake-case]
+file_one, file_two
+
+
+[PascalCase] 클래스 명 
