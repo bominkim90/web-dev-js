@@ -19,7 +19,7 @@ app.use('/users', usersRouter);
 
 
 // 채널 API (생성, 수정, 삭제)
-const channelsRouter = require('./routers/channel.js');
+const channelsRouter = require('./routers/channels.js');
 app.use('/channels', channelsRouter);
 
 

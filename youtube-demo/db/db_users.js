@@ -12,7 +12,14 @@ db_users.set('김보민', {
       title : "내꺼임",
       videos : 10,
       subscribers : 1 
-    }
+    },
+    'ch_bomin_2' : {
+      user_id : '김보민',
+      url : 'ch_bomin_2',
+      title : "내꺼임-2",
+      videos : 0,
+      subscribers : 0 
+    },
   }
 });
 db_users.set('추성훈', {

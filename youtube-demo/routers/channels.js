@@ -1,5 +1,8 @@
 // 채널 API
-// app.js에서 app.use('/channel', channelsRouter) 로 넘겨받음
+// app.js에서 app.use('/channels', channelsRouter) 로 넘겨받음
+
+// ** db_channels 수정시 => db_users도 같이 수정해야함
+
 
 const express = require('express');
 const router = express.Router();
@@ -44,14 +47,61 @@ router.post('/', (req,res) =>{
 
 
 
-// 채널 <수정>
-router.update('/', (req, res) => {
-  
+// 채널 <수정> : title만 수정할 수 있음
+// req.body에는 ==> 유저id, 채널url, 새로운채널title
+router.put('/', (req, res) => {
+  console.log(req.body);
+  const {user_id, ch_url, new_title} = req.body;
+  if(!user_id){
+    res.status(400).send("user_id을 정확히 입력해주세요");
+    return
+  }
+  if(!ch_url){
+    res.status(400).send("ch_url을 정확히 입력해주세요");
+    return
+  }
+  if(!new_title){
+    res.status(400).send("new_title을 정확히 입력해주세요");
+    return
+  }
+
+  db_channels.get(ch_url).title = new_title; // db_channels 수정하기
+  db_users.get(user_id).channels[ch_url].title = new_title; // db_users 수정하기
+
+  console.log(db_channels.get(ch_url).title);
+  console.log(db_users.get(user_id).channels[ch_url].title);
+
+  res.status(200).json({
+    success : true,
+    new_title : db_channels.get(ch_url).title,
+  });
 });
 
 
 // 채널 <삭제>
+// user_id와 채널url 받아야함
+router.delete('/', (req,res) => {
+  console.log(req.body);
+  const {user_id, ch_url} = req.body;
+  if(!user_id){
+    res.status(400).send("user_id를 올바르게 입력해주세요");
+    return;
+  }
+  if(!ch_url){
+    res.status(400).send("ch_url를 올바르게 입력해주세요");
+    return;
+  }
 
+  db_channels.delete(ch_url);
+  delete db_users.get(user_id).channels[ch_url];
+
+  console.log(db_channels.get(ch_url)); // undefined 나와야함
+
+  res.status(200).json({
+    success : true,
+    message : `${ch_url} 채널 삭제 성공`
+  })
+});
 
 
 
