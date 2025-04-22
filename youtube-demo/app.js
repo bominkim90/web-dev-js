@@ -13,9 +13,14 @@ const homeRouter = require('./routers/home.js');
 app.use('/', homeRouter);
 
 
-// 회원 API (가입, 로그인, 개별 조회, 개별 탈퇴)
+// 회원 API (가입, 개별 조회, 개별 탈퇴)
 const usersRouter = require('./routers/users.js');
 app.use('/users', usersRouter);
+
+
+// 로그인
+const loginRouter = require('./routers/login.js');
+app.use('/login', loginRouter);
 
 
 // 채널 API (생성, 수정, 삭제)
@@ -23,6 +28,9 @@ const channelsRouter = require('./routers/channels.js');
 app.use('/channels', channelsRouter);
 
 
+
+
+// port 넘버로 => 서버 오픈
 app.listen(port, () =>{
   console.log(`포트넘버(${port})로 서버가 오픈되었습니다.`)
 });
