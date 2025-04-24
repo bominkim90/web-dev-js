@@ -5,32 +5,30 @@
 // users테이블의 id를 channels테이블에 외래키로 넣어두어서 종속시킨다.
 
 
-// 여기서는 2 db 동시 수정해야함 
-// (DB시스템처럼 외래키로 연결해두고 그걸로 다양한 데이터 조회가 안되기때문)
 
 let db_channels = new Map();
-db_channels.set('ch_bomin', {
-  user_id : '김보민',
-  url : 'ch_bomin',
-  title : "내꺼임",
-  videos : 10,
-  subscribers : 100
-});
-db_channels.set('ch_bomin_2', {
-  user_id : '김보민',
-  url : 'ch_bomin_2',
-  title : "내꺼임-2",
-  videos : 0,
-  subscribers : 0
-});
+db_channels.set(
+  'ch_bomin', {
+    user_id : '김보민', // 회원DB에 id가 있어야함
+    url : 'ch_bomin',
+    title : "내꺼임"
+  }
+);
+db_channels.set(
+  'ch_bomin_2', {
+    user_id : '김보민',
+    url : 'ch_bomin_2',
+    title : "내꺼임-2"
+}
+);
 
-db_channels.set('추성훈', {
-  user_id : '추성훈',
-  url : 'ch_chu',
-  title : "추추트레인",
-  videos : 100,
-  subscribers : 10000 
-});
+db_channels.set(
+  '추성훈', {
+    user_id : '추성훈',
+    url : 'ch_chu',
+    title : "추추트레인"
+  }
+);
 
 
 

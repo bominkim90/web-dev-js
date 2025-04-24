@@ -72,8 +72,8 @@
     
   - res : id 로그인 성공
 
-3) 회원'개별' <조회> (GET '/users/:id')
-  - const {id} = req.params
+3) 회원'개별' <조회> (GET '/users')
+  - req : body (id) => JWT배우면 header로 받음
    
     체크사항
     -> id값 빈값 체크
