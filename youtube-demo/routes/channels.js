@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 
-const conn = require('../mariadb.js');
+const connYoutube = require('../connYoutube.js'); // connYoutube.js 모듈 불러오기
 
 
 let db_users = require('../db/db_users.js');

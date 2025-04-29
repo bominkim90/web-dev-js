@@ -1,6 +1,6 @@
 
-const express = require('express'); // express 모듈 가져오기
-const app = express(); // express 함수 실행해서 도구 꺼내기
+const express = require('express');
+const app = express(); 
 const port = 1234;
 
 /* 미들웨어 */
@@ -30,7 +30,6 @@ app.use('/channels', channelsRouter);
 
 
 
-// port 넘버로 => 서버 오픈
 app.listen(port, () =>{
   console.log(`포트넘버(${port})로 서버가 오픈되었습니다.`)
 });

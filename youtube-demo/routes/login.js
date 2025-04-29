@@ -1,42 +1,43 @@
-// 로그인 '/login'
 
 const express = require('express');
 const router = express.Router();
 
-const conn = require('../mariadb.js');
+const connYoutube = require('../connYoutube.js');
 
-const db_users = require('../db/db_users.js');
-
-router.post('/', (req, res) => { 
-  const {user_id, user_pw} = req.body;
-
-  // 빈 값 체크
-  if(!user_id) {
-    res.status(400).send("user_id 값으로 빈값은 들어올 수 없습니다.")
-    return;
-  }
-  if(!user_pw) {
-    res.status(400).send("user_pw 값으로 빈값은 들어올 수 없습니다.")
+// 로그인 '/login'
+router.post('/', async (req, res) => { 
+  const {user_email, user_pw} = req.body;
+  
+  if(!user_email || !user_pw) {
+    res.status(400).send("로그인 정보로는 빈값이 들어올 수 없습니다.")
     return;
   }
   
-  // user_id 있는지 체크
-  if( !db_users.get(user_id) ){
-    res.status(404).send("존재하지 않는 user_id 입니다.");
-    return;
-  }
-  // 비밀번호 체크
-  if( db_users.get(user_id).user_pw !== user_pw ){
-    res.status(404).send("비밀번호가 일치하지 않습니다.");
-    return;
-  }
+  try {
+    // email 먼저 체크
+    const [emailRows, emailfields] = await connYoutube.promise().query(
+      `SELECT email FROM users WHERE email = ?`, user_email
+    )
+    if( emailRows.length === 0 ){ 
+      return res.status(404).send("해당 email 계정이 없습니다.");
+    }
+    // password 체크
+    const [rows, pwfields] = await connYoutube.promise().query(
+      `SELECT email, password FROM users WHERE email = ? AND password = ?`, 
+      [user_email, user_pw]
+    )
+    if( rows.length === 0 ){ 
+      return res.status(404).send("비밀번호를 올바르게 입력해주세요.");
+    }
 
-  // 로그인 성공 => 응답
-  res.status(201).json({
-    success: true,
-    user_id : user_id,
-    message : `'${user_id}'님, 로그인에 성공하셨습니다.`
-  });
+    res.status(201).json({
+      message : `'${user_email}'님, 로그인에 성공하셨습니다.`
+    });
+  }
+  
+  catch (err) {
+    console.log(err);
+  }
 })
 
 

@@ -2,108 +2,109 @@
 const express = require('express');
 const router = express.Router();
 
-// 모듈 불러오기 : require(mariadb.js) 코드가 읽히는 시점 => 안의 코드 한번 실행
-// module.exports = 여기에담은값 (이게 require() 실행후 return 됨)
-
-const conn = require('../mariadb.js'); // 현업에서 conn 줄임말로 많이 씀
-
-conn.query(
-  'SELECT * FROM `users`',
-
-  function (err, results, fields) {
-    console.log(results);
-  }
-);
+const connYoutube = require('../connYoutube.js');
 
 
-let db_users = require('../db/db_users.js');
-
-
-
+// users 회원 API
 router.route('/')
 
-  .post( (req, res) => { // 회원가입
-    const {user_id, user_pw} = req.body;
-    // 빈 값 체크
-    if(!user_id) {
-      res.status(400).send("user_id 값으로 빈값은 들어올 수 없습니다.")
+  // <가입>
+  .post( async (req, res) => { 
+    const {user_email, user_pw, user_phone} = req.body;
+    if(!user_email || !user_pw || !user_phone) {
+      res.status(400).send("회원 정보를 모두 입력해주세요.")
       return;
     }
-    if(!user_pw) {
-      res.status(400).send("password 값으로 빈값은 들어올 수 없습니다.")
-      return;
+
+    try {
+      const [rows, fields] = await connYoutube.promise().query(
+        `INSERT INTO users (email, password, phone)
+        VALUES (?, ?, ?)`, [user_email, user_pw, user_phone]
+      );
+      if(rows.affectedRows === 1) {
+        res.status(201).json({
+          message : `'${user_email}'님, 회원이 되신걸 환영합니다.`
+        });
+      }
     }
-    // user_id값 중복체크
-    if( db_users.get(user_id) !== undefined ){
-      res.status(400).send(`${user_id}값은 중복된 user_id입니다. 다른 user_id를 선택해주세요.`);
-      return;
+    catch (err) {
+      console.log(err)
+      if(err.code == 'ER_DUP_ENTRY') { // mariadb에서 INSERT 쿼리에서 "중복" 에러
+        res.status(400).json({
+          message : `'${user_email}'이 값은 중복된 email 주소입니다. 다른 email주소를 입력해주세요.`
+        });
+        return;
+      }
+      res.status(400).json({
+        message : "데이터를 올바르게 입력해주세요"
+      })
     }
-    // db_users에 넣기
-    db_users.set(user_id, {
-      user_id : user_id,
-      user_pw : user_pw
-    })
-    console.log(db_users);
-    // 응답
-    res.status(201).json({
-      success: true,
-      user_id : user_id,
-      message : `'${db_users.get(user_id).user_id}'님 회원이 되신걸 축하드립니다.`
-    });
   })
 
-  .get( (req, res) => { // 회원 개별 조회
-    const user_id = req.body.user_id;
-    console.log(user_id);
-    // 빈 값 체크
-    if(!user_id) {
-      res.status(400).send("id 값으로 빈값은 들어올 수 없습니다.")
-      return;
+  // <조회>
+  .get( async (req, res) => { 
+    try {
+      let {email} = req.body;
+      if(!email) { // "전체" 조회
+        const [rows, fileds] = await connYoutube.promise().query(
+          'SELECT * FROM users'
+        );
+        res.status(201).json({
+          data : rows
+        });
+      }
+      else { // "개별" 조회
+        const [rows, fields] = await connYoutube.promise().query(
+          `SELECT * FROM users WHERE email = ?`, email
+        )
+        if(rows.length === 0){
+          res.status(400).send(`'${email}' 회원에 대한 정보가 존재하지 않습니다.`);
+          return;
+        }
+        return res.status(200).json({
+          data: rows
+        })
+      }
     }
-     // id 있는지 체크
-     if( !db_users.get(user_id) ){
-      res.status(400).send("존재하지 않는 user_id 입니다.");
-      return;
+    catch (err) {
+      console.log(err);
+      return res.status(500).json({
+        message: `DB 조회 중 에러가 발생했습니다`
+      })
     }
-    // 조회 성공 => 응답
-    res.status(201).json({
-      success: true,
-      user_id : user_id,
-      message : `'${db_users.get(user_id).user_id}'님, 마이페이지 진입하셨습니다.`
-    });
   })
 
-  .delete( (req, res) => { // 회원 탈퇴
-    const {user_id, user_pw} = req.body;
-    // 빈 값 체크
-    if(!user_id) {
-      res.status(400).send("user_id 값으로 빈값은 들어올 수 없습니다.")
+  // 개별 <탈퇴>
+  .delete( async (req, res) => { 
+    const {user_email} = req.body;
+    if(!user_email) { // 빈 값 체크
+      res.status(400).send("회원정보에 빈값은 들어올 수 없습니다.")
       return;
     }
-    if(!user_pw) {
-      res.status(400).send("user_pw 값으로 빈값은 들어올 수 없습니다.")
-      return;
+    try {
+      const [rows, fields] = await connYoutube.promise().query(
+        `DELETE FROM users WHERE email = ?`, user_email
+      );
+      if(rows.affectedRows > 0) { // 탈퇴 성공
+        res.status(201).json({
+          message : `'${user_email}'님, 회원탈퇴에 성공하였습니다.`
+        });
+      }
+      else { // 회원 정보가 없음
+        res.status(400).json({
+          message : `'${user_email}' 계정이 존재하지 않습니다.`
+        });
+      }
     }
-    // user_id 있는지 체크
-    if( !db_users.get(user_id) ){
-      res.status(400).send("존재하지 않는 user_id 입니다.");
-      return;
+    catch (err) {
+      console.log(err);
+      res.status(500).json({
+        message : `서버에서 에러가 발생하였습니다.`
+      });
     }
-    // 비밀번호 체크
-    if( db_users.get(user_id).user_pw !== user_pw ){
-      res.status(400).send("비밀번호가 일치하지 않습니다.");
-      return;
-    }
-    // db_users에서 삭제
-    db_users.delete(user_id);
-    console.log(db_users);
-    // 탈퇴 성공 => 응답
-    res.status(201).json({
-      success: true,
-      user_id : user_id,
-      message : `'${user_id}'님, 회원탈퇴에 성공하였습니다.`
-    });
   });
+
+
 
 
 module.exports = router;

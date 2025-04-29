@@ -6,7 +6,7 @@
 (node.js + express 이용)
 
 1. REST API 설계 방법 (HTTP method, url)
-  - GET, POST, DELETE 요청 처리하기
+  - GET, POST, UPDATE, DELETE 요청 처리하기
   - app.route(path) .get() . post() .delete();
     이렇게 app.route(path)를 이용하여 메서드 채이닝을 써서 간단하게 표현하기
 
@@ -23,23 +23,25 @@
 4. 각 API path 주소
   회원가입
     POST '/users' 
-    req.body로 받는거 - id,password, name
+    req.body로 받는거 : id, password
 
   로그인
     POST '/users/login' 
-    req.body로 받는거 - id,password
-
+    req.body로 받는거 : id, password
+   
   개별 회원 조회
-    GET '/users/:id' 
-    req.body로 받는거 - id
+    GET '/users'
+    req.body로 q받음 : id
+   => 나중에 JWT로 회원인증을 하는걸 배우면
+    req.body가 아닌 header로 받게끔 수정해야함
 
   개별 회원 탈퇴
     DELETE '/users' 
-    req.body로 받는거 - id,password
+    req.body로 받는거 : id, password
 
 
 5. express 도구들 기능
-  - app.route(path)
+  - app.route(path) : 이거 express.Router() 랑 다른거임
     // app.route(path)는 app.get(path)랑 다를게 없음
     // 그냥 원래는 app.get(), app.post() 따로 만들어야하는걸 app.route() 뒤에 채이닝으로 붙여서 깔끔하게 보이게 해주는 기능일 뿐
     // 대신 신경써야할게 -> app.get(path)도 '/' 이렇게하면'/'이거 하나만을 위한 처리이듯이('/:id'와 다르듯이) route(path)도 신경써야함  
@@ -48,9 +50,36 @@
 
 
 ---
+## Youtube 스키마(DB) 설계도
+```
+회원 테이블
+CREATE TABLE users (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  email VARCHAR(50) NOT NULL UNIQUE,
+  password VARCHAR(50) NOT NULL,
+  phone VARCAHR(30) NOT NULL,
+  created_at TIMESTAMP DEFAULT NOW()
+)
+
+채널 테이블
+CREATE TABLE channels (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  ch_url VARCHAR(100) NOT NULL,
+  title VARCHAR(100) NOT NULL,
+  num_subs INT,
+  num_videos INT, 
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at DATETIME DEFAULT NOW() ON UPDATE NOW(),
+  user_id INT NOT NULL,
+  
+  FOREIGN KEY (user_id) REFERENCES users(id) -- 외래키 (회원 id 값이 존재할때만 -> 채널row 추가 가능)
+)
+```
 
 
-## *회원* API
+---
+
+## 회원(users.js) API
 ```
 1) 회원 <가입> (POST '/users')
   - req : body(id, password, name)
@@ -81,7 +110,7 @@
 
   - res : id 마이페이지임
 
-4) 회원'개별' <탈퇴> (DELETE '/users')
+4) 회원 <탈퇴> (DELETE '/users')
   - req : body(id, password)
 
     체크사항
@@ -99,7 +128,7 @@
 
 
 
-## *채널* API (회원에 종속)
+## 채널(channels.js) API
 *** 회원은 계정 1개당 채널 100개 까지 가질 수 있다. ***
 ```
   1) 채널 <생성>

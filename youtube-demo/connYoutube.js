@@ -1,8 +1,7 @@
-// Get the client
+
 const mysql = require('mysql2');
 
-// Create the connection to database
-const connection = mysql.createConnection(
+const connYoutube = mysql.createConnection(
   {
     host: 'localhost',
     user: 'root',
@@ -14,4 +13,4 @@ const connection = mysql.createConnection(
 );
 
 
-module.exports = connection;
+module.exports = connYoutube;
