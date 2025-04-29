@@ -2,19 +2,34 @@
 const express = require('express');
 const router = express.Router();
 
+// 모듈 불러오기 : require(mariadb.js) 코드가 읽히는 시점 => 안의 코드 한번 실행
+// module.exports = 여기에담은값 (이게 require() 실행후 return 됨)
+
+const conn = require('../mariadb.js'); // 현업에서 conn 줄임말로 많이 씀
+
+conn.query(
+  'SELECT * FROM `users`',
+
+  function (err, results, fields) {
+    console.log(results);
+  }
+);
+
+
 let db_users = require('../db/db_users.js');
+
 
 
 router.route('/')
 
   .post( (req, res) => { // 회원가입
-    const {user_id, password} = req.body;
+    const {user_id, user_pw} = req.body;
     // 빈 값 체크
     if(!user_id) {
       res.status(400).send("user_id 값으로 빈값은 들어올 수 없습니다.")
       return;
     }
-    if(!password) {
+    if(!user_pw) {
       res.status(400).send("password 값으로 빈값은 들어올 수 없습니다.")
       return;
     }
@@ -26,7 +41,7 @@ router.route('/')
     // db_users에 넣기
     db_users.set(user_id, {
       user_id : user_id,
-      password : password
+      user_pw : user_pw
     })
     console.log(db_users);
     // 응답
@@ -59,14 +74,14 @@ router.route('/')
   })
 
   .delete( (req, res) => { // 회원 탈퇴
-    const {user_id, password} = req.body;
+    const {user_id, user_pw} = req.body;
     // 빈 값 체크
     if(!user_id) {
       res.status(400).send("user_id 값으로 빈값은 들어올 수 없습니다.")
       return;
     }
-    if(!password) {
-      res.status(400).send("password 값으로 빈값은 들어올 수 없습니다.")
+    if(!user_pw) {
+      res.status(400).send("user_pw 값으로 빈값은 들어올 수 없습니다.")
       return;
     }
     // user_id 있는지 체크
@@ -75,7 +90,7 @@ router.route('/')
       return;
     }
     // 비밀번호 체크
-    if( db_users.get(user_id).password !== password ){
+    if( db_users.get(user_id).user_pw !== user_pw ){
       res.status(400).send("비밀번호가 일치하지 않습니다.");
       return;
     }

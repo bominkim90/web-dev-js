@@ -9,24 +9,24 @@
 let db_channels = new Map();
 db_channels.set(
   'ch_bomin', {
-    user_id : '김보민', // 회원DB에 id가 있어야함
-    url : 'ch_bomin',
-    title : "내꺼임"
+    ch_url : 'ch_bomin',
+    ch_title : "내꺼임",
+    user_id : '김보민' // FK(외래키)
   }
 );
 db_channels.set(
   'ch_bomin_2', {
-    user_id : '김보민',
-    url : 'ch_bomin_2',
-    title : "내꺼임-2"
+    ch_url : 'ch_bomin_2',
+    ch_title : "내꺼임-2",
+    user_id : '김보민'
 }
 );
 
 db_channels.set(
   '추성훈', {
-    user_id : '추성훈',
-    url : 'ch_chu',
-    title : "추추트레인"
+    ch_url : 'ch_chu',
+    ch_title : "추추트레인",
+    user_id : '추성훈'
   }
 );
 
