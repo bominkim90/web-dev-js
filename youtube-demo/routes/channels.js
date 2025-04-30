@@ -1,152 +1,225 @@
 const express = require('express');
 const router = express.Router();
+const err_mySql = require('../errCode/err_mySql.js')
 
-const connYoutube = require('../connYoutube.js'); // connYoutube.js 모듈 불러오기
-
+const connYoutube = require('../connYoutube.js');
 
 let db_users = require('../db/db_users.js');
 let db_channels = require('../db/db_channels.js');
 
-// 채널 <생성>
-router.post('/', (req,res) => {
-  const {user_id, ch_url, ch_title} = req.body;
-  if( db_users.get(user_id) === undefined )
-  { 
-    res.send(`${user_id} 는 존재하지 않는 회원user_id 입니다.`);
-    return;
-  }
-  if( db_channels.get(ch_url) !== undefined)
-  { 
-    res.send(`${ch_url} 은 중복이므로, 다른 ch_url을 선택해주세요`);
-    return;
-  }
-  // db_channels에서 '김보민'회원이 가진 모든 채널 조회
-  const allChannelsOfUser = Array.from(db_channels.values()).filter( value => {
-    return value.user_id == user_id
-  })
-  if(allChannelsOfUser.length >= 100)
-  { 
-    res.send(`${user_id} 계정의 총 채널 개수가 ${allChannelsOfUser.length}개 이므로, 더이상 채널을 만들지 못합니다.`);
-    return;
-  }
-  const data = { 
-    user_id : user_id,
-    ch_url : ch_url,
-    ch_title : ch_title
-  }
-  db_channels.set(ch_url, data);
-  res.json({
-    success: true,
-    message : "채널 생성에 성공하였습니다. 저장된 데이터는 아래와 같습니다.",
-    ...data
-  })
-});
+/* '/channels' API */
 
 
-// 회원 채널 '전체' <조회>
-router.get('/', (req, res) => {
-  const {user_id} = req.body;
-  console.log(user_id);
-  
-  if( !user_id || !db_users.get(user_id) ) {
+// 회원 채널 <생성>
+router.post('/', async (req,res) => {
+  const {url, title, user_email} = req.body;
+  if(!url || !title || !user_email) {
     res.status(400).json({
-      message : `${user_id} 계정은 존재하지 않는 계정입니다. 로그인이 필요한 페이지 입니다.`
+      message : "채널생성 정보에는 (빈값, 0, 공백) 만 들어올 수는 없습니다."
     })
-    return;
+    return
   }
+  try {
+    const sql = `INSERT INTO channels (url, title, user_email) VALUES (?, ?, ?);`
+    const sqlValues = [url, title, user_email]
+    const [rows, fields] = await connYoutube.promise().query(sql, sqlValues)
+    console.log("rows : ",rows);
+    console.log("fields : ",fields);
   
-  let allUserChannels = Array.from(db_channels.values()).filter( value => {
-    return value.user_id === user_id 
-  })
-  res.status(200).json({
-    message : `${user_id} 계정에 대한, 전체 채널 정보입니다.`,
-    data : allUserChannels
-  })
+    res.status(200).json({
+      data : {url, title, user_email}
+    })
+  }
+  catch (err) {
+    console.log(err);
+    err_mySql(err, res);
+  }
 });
 
 
-// 회원 채널 '개별' <조회>
-// .get('/:ch_url',콜백함수) -> /:params 이렇게쓰면 --> 항상 parameter가 있어야하는 형태로만 받아야함
-router.get('/:ch_url', (req, res) => 
-{
-  if( !req.body ) {
-    return res.status(400).json({message : `GET요청이지만 body값 포함해서 날려주세요`});
-  }
-
-  const user_id = req.body.user_id; 
-  if( !user_id ) {
-    return res.status(400).json({message : `로그인이 필요한 페이지 입니다.`});
-  }
-
-  if( !db_users.get(user_id) ) { 
-    return res.status(400).json( {message : `${user_id} 계정은 존재하지 않는 계정입니다.`} );
-  }
-  
-  const ch_url = req.params.ch_url;
-  let statusCode, result;
-  
-  let allUserChannels = Array.from(db_channels.values()).filter( value => {
-    return value.user_id === user_id
-  })
-  
-  let channelUrlData = allUserChannels.filter( value => value.ch_url == ch_url );
-  if(channelUrlData.length > 0) { // 채널url 매칭되는 정보 O
-    statusCode = 400;
-    result = {
-      message : "채널URL에 매칭되는 채널 정보 입니다.",
-      data : channelUrlData
+// 채널 전체 <조회>
+router.get('/', async (req, res) => {
+  if(!req.body) { // 전체 채널 조회
+    try {
+      const sql = `SELECT * FROM channels;`
+      const [rows, fields] = await connYoutube.promise().query(sql)
+      console.log("rows : ",rows);
+      res.status(200).json({
+        data : rows,
+        message : "채널 전체 조회 성공하였습니다"
+      })
     }
-  } 
-  else { // 채널url 매칭되는 정보 X
-    statusCode = 400;
-    result = {
-      message : "계정은 존재하나, 채널url에 매칭되는 채널 정보가 존재하지 않습니다",
+    catch (err) {
+      console.log(err);
+      err_mySql(err, res);
     }
   }
-  res.status(statusCode).json(result);
+  else { // 계정 채널 조회
+    const {user_email} = req.body
+    if(!user_email) {
+      res.status(200).json({
+        message : "email을 정확히 입력해주세요"
+      })
+      return
+    }
+    try {
+      const sql = `SELECT * FROM channels WHERE user_email = ?`
+      const sqlValues = user_email
+      const [rows, fields] = await connYoutube.promise().query(sql, sqlValues)
+      console.log("rows : ",rows);
+      res.status(200).json({
+        data : rows,
+        message : "해당 계정에 존재하는, 모든 채널 조회에 성공하였습니다"
+      })
+    }
+    catch (err) {
+      console.log(err);
+      err_mySql(err, res);
+    }
+  }
 });
 
-// 채널 <수정> : title만 수정할 수 있음
-router.put('/', (req, res) => {
-  console.log(req.body);
-  const {user_id, ch_url, new_title} = req.body;
-  if(!user_id){
-    res.status(400).send("user_id을 정확히 입력해주세요");
+
+// '특정URL' 채널 <조회>
+router.get('/:channelUrl', async (req, res) => {
+  console.log("특정url 채널 조회")
+  if(!req.body) {
+    res.status(400).json({
+      message : "로그인을 해야 조회할 수 있는 정보입니다."
+    })
     return
   }
-  if(!ch_url){
-    res.status(400).send("ch_url을 정확히 입력해주세요");
-    return
-  }
-  if(!new_title){
-    res.status(400).send("new_title을 정확히 입력해주세요");
+  const {user_email} = req.body
+  if(!user_email) {
+    res.status(400).json({
+      message : "email을 정확히 입력해주세요."
+    })
     return
   }
 
-  db_channels.get(ch_url).ch_title = new_title; // db_channels 수정하기
-  res.status(200).json({
-    success : true,
-    new_title : db_channels.get(ch_url).ch_title,
-  });
+  try {
+    // 회원이 있는지 먼저 체크
+    const [userRow, userField] = await connYoutube.promise().query(
+      `SELECT * FROM users WHERE email = ?`, user_email)
+    console.log(userRow)
+    if(userRow.length === 0) {
+      res.status(400).json({
+        message : "존재하지 않는 회원 email 입니다다"
+      })
+      return
+    }
+
+    // 그다음 회원안에 채널 정보 조회
+    const {channelUrl} = req.params
+    const sql = `SELECT * FROM channels WHERE user_email = ? AND url = ?`
+    const sqlValues = [user_email, channelUrl]
+    const [rows, fields] = await connYoutube.promise().query(sql, sqlValues)
+    console.log("rows : ",rows);
+    if(rows.length === 0) {
+      res.status(400).json({
+        message : `'${user_email}' 계정에 존재하는, '${channelUrl}' url 채널 정보가 존재하지 않습니다.`,
+        data : rows
+      })
+    }
+    res.status(200).json({
+      message : `'${user_email}' 계정에 존재하는, '${channelUrl}' url 채널 조회에 성공하였습니다`,
+      data : rows
+    })
+  }
+  catch (err) {
+    console.log(err);
+    err_mySql(err, res);
+  }
 });
 
-// 채널 <삭제>
-router.delete('/', (req,res) => {
-  const {user_id, ch_url} = req.body;
-  if(!user_id){
-    res.status(400).send("user_id를 올바르게 입력해주세요");
-    return;
+
+// 회원 채널 <수정> : 한번에 하나의 데이터만 수정할 수 있음
+router.put('/:updateColumn', async (req, res) => {
+  try {
+    const {updateColumn} = req.params
+    const {user_email, ch_url, new_data} = req.body
+    if( !user_email || !ch_url || !new_data ) {
+      res.status(400).json({message : `데이터를 정확히 입력해주세요.`})
+      return
+    }
+    // 로그인 체크
+    const [userRows, userFields] = await connYoutube.promise().query(
+      `SELECT * FROM users WHERE email = ?`, user_email)
+    if(userRows.length === 0) {
+      res.status(400).json({message : `로그인이 필요한 서비스입니다.`})
+      return
+    }
+    // 채널url 존재 체크
+    const [channelUrlRows, channelUrlFields] = await connYoutube.promise().query(
+      `SELECT * FROM channels WHERE url = ?`, ch_url)
+    if(channelUrlRows.length === 0) {
+      res.status(400).json({message : `해당 채널url은 존재하지 않습니다.`})
+      return
+    }
+    // 수정하기
+    const [updatedRows, updatedFields] = await connYoutube.promise().query(
+      `UPDATE channels SET ${updateColumn} = ? WHERE url = ? AND user_email = ?`, 
+      [new_data, ch_url, user_email]
+    )
+    console.log(updatedRows)
+    res.status(200).json({
+      user_email,
+      ch_url,
+      updateColumn,
+      new_data,
+      message : `데이터 수정에 성공하였습니다`
+    })
   }
-  if(!ch_url){
-    res.status(400).send("ch_url를 올바르게 입력해주세요");
-    return;
+  catch (err) {
+    console.log(err);
+    err_mySql(err, res);
+  }
+});
+
+
+// 회원 채널 <삭제>
+router.delete('/', async (req,res) => {
+  const {user_email, ch_url} = req.body
+  if( !user_email || !ch_url ) {
+    res.status(400).json({
+      message : "필수입력값을 제대로 입력해주세요."
+    })
+    return
+  }
+  
+  try {
+    // 로그인 확인
+    const [userRows, userFields] = await connYoutube.promise().query(
+      `SELECT * FROM users WHERE email = ?`, user_email
+    )
+    console.log("userRows :",userRows)
+    if(userRows.length === 0) {
+      res.status(400).json({
+        message : "해당 계정은 존재하지 않습니다다"
+      })
+      return
+    }
+    // 채널 url 존재 확인
+    const [channelRows, channelFields] = await connYoutube.promise().query(
+      `DELETE FROM channels WHERE url = ? AND user_email = ?`, [ch_url, user_email]
+    )
+    console.log("channelRows :",channelRows)
+    if(channelRows.affectedRows === 0) {
+      res.status(400).json({
+        message : "해당 채널이 존재하지 않습니다."
+      })
+      return
+    }
+    res.status(400).json({
+      message : "해당 채널이 삭제되었습니다."
+    })
   }
 
-  db_channels.delete(ch_url);
-  res.status(200).json({
-    success : true,
-    message : `${ch_url} 채널 삭제 성공`
-  })
+  catch (err) {
+    console.log(err);
+    err_mySql(err, res);
+  }
+  // 채널 url 존재하는지 확인
 });
 
 module.exports = router;
