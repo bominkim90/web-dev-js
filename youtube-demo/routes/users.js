@@ -1,108 +1,115 @@
-
-const express = require('express');
+/* 
+  회원 API 
+  '/users'
+*/
+const express = require('express')
 const router = express.Router();
+const connYoutube = require('../connYoutube.js')
+const err_mySql = require('../errCode/err_mySql.js')
+const {body, validationResult} = require('express-validator') // 얘는 그냥 단순히 함수형태이고, 문자열의 validation 체크(정규식)해주는 애임
 
-const connYoutube = require('../connYoutube.js');
+// 유효성검사 미들웨어 함수
+function validate(req, res, next) {
+  const err = validationResult(req)
+
+  if (!err.isEmpty()) {
+    return res.status(400).json(err.array())
+  }
+  next()
+}
 
 
-// users 회원 API
+/*************************************************************************************/
 router.route('/')
 
-  // <가입>
-  .post( async (req, res) => { 
-    const {user_email, user_pw, user_phone} = req.body;
-    if(!user_email || !user_pw || !user_phone) {
-      res.status(400).send("회원 정보를 모두 입력해주세요.")
-      return;
-    }
+  // 회원 <가입>
+  .post(
+    body('email').notEmpty().isEmail().withMessage('email 형식 필요'),
+    body('password').notEmpty().isString().withMessage('문자 입력 필요'),
+    body('phone').notEmpty().isString().withMessage('문자 입력 필요'),
+    validate,
 
-    try {
-      const [rows, fields] = await connYoutube.promise().query(
-        `INSERT INTO users (email, password, phone)
-        VALUES (?, ?, ?)`, [user_email, user_pw, user_phone]
-      );
-      if(rows.affectedRows === 1) {
-        res.status(201).json({
-          message : `'${user_email}'님, 회원이 되신걸 환영합니다.`
-        });
+    async (req, res) => { 
+      const {email, password, phone} = req.body
+      try {
+        // users 테이블에 INSERT
+        const [userRows, _] = await connYoutube.promise().query(
+          `INSERT INTO users (email, password, phone) VALUES (?, ?, ?)`, 
+          [email, password, phone]
+        );
+        // 회원가입 성공
+        if(userRows.affectedRows === 1) {
+          res.status(201).json({
+            data : userRows,
+            message : `'${email}'님, 회원이 되신걸 환영합니다.`
+          });
+        }
       }
-    }
-    catch (err) {
-      console.log(err)
-      if(err.code == 'ER_DUP_ENTRY') { // mariadb에서 INSERT 쿼리에서 "중복" 에러
-        res.status(400).json({
-          message : `'${user_email}'이 값은 중복된 email 주소입니다. 다른 email주소를 입력해주세요.`
-        });
-        return;
+      catch (err) {
+        console.log(err)
+        if(err.code == 'ER_DUP_ENTRY') {
+          return res.status(400).json({message : `중복된 email 주소입니다.`});
+        }
+        res.status(400).json({message : "데이터를 올바르게 입력해주세요"})
       }
-      res.status(400).json({
-        message : "데이터를 올바르게 입력해주세요"
-      })
-    }
-  })
+    })
 
-  // <조회>
+
+  // 회원 <조회>
   .get( async (req, res) => { 
     try {
-      let {email} = req.body;
-      if(!email) { // "전체" 조회
-        const [rows, fileds] = await connYoutube.promise().query(
+      if( !req.body || !req.body.user_email ) { // "전체" 조회
+        const [allUsersRows, _] = await connYoutube.promise().query(
           'SELECT * FROM users'
-        );
-        res.status(201).json({
-          data : rows
-        });
+        )
+        return res.status(201).json(allUsersRows);
       }
       else { // "개별" 조회
-        const [rows, fields] = await connYoutube.promise().query(
-          `SELECT * FROM users WHERE email = ?`, email
+        const [userRow, __] = await connYoutube.promise().query(
+          'SELECT * FROM users WHERE email = ?', 
+          req.body.user_email
         )
-        if(rows.length === 0){
-          res.status(400).send(`'${email}' 회원에 대한 정보가 존재하지 않습니다.`);
-          return;
+        if(userRow.length === 0){
+          return res.status(400).send(`회원에 대한 정보가 존재하지 않습니다.`);
         }
-        return res.status(200).json({
-          data: rows
-        })
+        return res.status(200).json(userRow)
       }
     }
     catch (err) {
       console.log(err);
-      return res.status(500).json({
-        message: `DB 조회 중 에러가 발생했습니다`
-      })
+      return res.status(500).json({message: `DB 조회 중 에러가 발생했습니다`})
     }
   })
 
+
   // 개별 <탈퇴>
-  .delete( async (req, res) => { 
-    const {user_email} = req.body;
-    if(!user_email) { // 빈 값 체크
-      res.status(400).send("회원정보에 빈값은 들어올 수 없습니다.")
-      return;
-    }
-    try {
-      const [rows, fields] = await connYoutube.promise().query(
-        `DELETE FROM users WHERE email = ?`, user_email
-      );
-      if(rows.affectedRows > 0) { // 탈퇴 성공
-        res.status(201).json({
-          message : `'${user_email}'님, 회원탈퇴에 성공하였습니다.`
-        });
+  .delete(
+    body('email').notEmpty().isEmail().withMessage('email 형식 필요'),
+    body('password').notEmpty().isString().withMessage('문자 입력 필요'),
+    validate,
+
+    async (req, res) => {
+      const {email, password} = req.body
+      try {
+        const [userRow, _] = await connYoutube.promise().query(
+          `DELETE FROM users WHERE email = ? password = ?`, 
+          [email, password]
+        )
+        // 탈퇴 성공
+        if(userRow.affectedRows > 0) {
+          return res.status(201).json(userRow)
+        }
+        else { // 회원 정보가 없음
+          return res.status(400).json(userRow)
+        }
       }
-      else { // 회원 정보가 없음
-        res.status(400).json({
-          message : `'${user_email}' 계정이 존재하지 않습니다.`
-        });
+      catch (err) {
+        console.log(err);
+        res.status(500).json({
+          message : `서버에서 에러가 발생하였습니다.`
+        })
       }
-    }
-    catch (err) {
-      console.log(err);
-      res.status(500).json({
-        message : `서버에서 에러가 발생하였습니다.`
-      });
-    }
-  });
+    })
 
 
 
