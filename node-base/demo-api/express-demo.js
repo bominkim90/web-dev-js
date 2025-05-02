@@ -1,3 +1,6 @@
+const dotenv = require('dotenv')
+dotenv.config() // .env 파일을 읽고 -> 내용을 process.env에 저장
+
 // import express from 'express' // ES 모듈 문법 (사용하려면 package.json에 "type": "module" 필요)
 const express = require('express'); // CommonJS 문법(기본제공)으로 'express' 모듈 불러오기
 
@@ -22,4 +25,4 @@ app.get('/products/1', (req,res)=>{
 });
 
 
-app.listen(1234); // 서버를 포트 1234에서 실행. 브라우저에서 http://localhost:1234 접속 가능
+app.listen(process.env.PORT); // 서버를 포트 1234에서 실행. 브라우저에서 http://localhost:1234 접속 가능
