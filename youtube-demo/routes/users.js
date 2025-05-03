@@ -1,17 +1,16 @@
-/* 
-  회원 API 
-  '/users'
-*/
+/* /users 회원 API */
+
+// 필요 모듈 소환
 const express = require('express')
 const router = express.Router();
 const connYoutube = require('../connYoutube.js')
 const err_mySql = require('../errCode/err_mySql.js')
 const {body, validationResult} = require('express-validator') // 얘는 그냥 단순히 함수형태이고, 문자열의 validation 체크(정규식)해주는 애임
 
-// 유효성검사 미들웨어 함수
-function validate(req, res, next) {
-  const err = validationResult(req)
 
+// 미들웨어 함수
+function validate(req, res, next) { // 유효성 검사
+  const err = validationResult(req)
   if (!err.isEmpty()) {
     return res.status(400).json(err.array())
   }
@@ -24,9 +23,9 @@ router.route('/')
 
   // 회원 <가입>
   .post(
-    body('email').notEmpty().isEmail().withMessage('email 형식 필요'),
-    body('password').notEmpty().isString().withMessage('문자 입력 필요'),
-    body('phone').notEmpty().isString().withMessage('문자 입력 필요'),
+    body('email').notEmpty().isEmail().withMessage('email 입력 필요'),
+    body('password').notEmpty().isString().withMessage('password 입력 필요'),
+    body('phone').notEmpty().isString().withMessage('phone 입력 필요'),
     validate,
 
     async (req, res) => { 
